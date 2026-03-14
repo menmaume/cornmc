@@ -544,7 +544,7 @@ async function renderRanking() {
 
     container.innerHTML = '<div class="text-center py-12"><div class="loader-ring w-12 h-12 mx-auto mb-4"></div><p class="text-cyan-400 font-bold neon-text animate-pulse">Đang tải dữ liệu từ máy chủ...</p></div>';
 
-    const exportID = "v3GN1L3B2aximGz8"; // ID Bytebin của bạn
+    const exportID = "429WFMdzSdJu2GCC"; // ID Bytebin của bạn
     const rawDataUrl = `https://bytebin.ajg0702.us/${exportID}`;
 
     try {
@@ -559,22 +559,32 @@ async function renderRanking() {
 
         // 2. DỮ LIỆU TOP DONATE (Nhập thủ công)
         const donateData = [
+            { namecache: "Glenn1", value: 2600000 },
             { namecache: "PE_Dellcotenok", value: 2225000 },
             { namecache: "PE_PopOcean46064", value: 900000 },
             { namecache: "Timmythanh007", value: 860000 },
-            { namecache: "luan198348", value: 620000 },
-            { namecache: "Glenn1", value: 1000000 },
+            { namecache: "luan198348", value: 820000 },
+            { namecache: "Ghast", value: 500000 },
             { namecache: "ShaMein", value: 450000 },
-            { namecache: "NgiPam_06", value: 230000 },
+            { namecache: "NgiPam_06", value: 431000 },
+            { namecache: "Trungvippro", value: 420000 },
             { namecache: "LaShan", value: 200000 },
             { namecache: "PE_Mine8889672", value: 200000 },
             { namecache: "CharlesTwoK", value: 170000 },
+            { namecache: "Sunnn06", value: 150000 },
             { namecache: "111s", value: 100000 },
+            { namecache: "Haiyen01", value: 100000 },
+            { namecache: "68_Hazy", value: 100000 },
+            { namecache: "Hazon1409", value: 85000 },
+            { namecache: "Yuna_Gaming", value: 70000 },
             { namecache: "ScuHq", value: 50000 },
             { namecache: "PE_Huyvippto6584", value: 50000 },
             { namecache: "Kazuto207", value: 49000 },
             { namecache: "Setroit", value: 30000 },
-            { namecache: "lehiepmc", value: 20000 }
+            { namecache: "CuCoMuiKhai", value: 30000 },
+            { namecache: "linhcute2006", value: 25000 },
+            { namecache: "lehiepmc", value: 20000 },
+            { namecache: "sangvu", value: 15000 }
         ];
         // Sắp xếp tự động từ cao xuống thấp
         const donateBoard = donateData.sort((a, b) => b.value - a.value);
@@ -731,7 +741,7 @@ async function updateServerStatus() {
 
         const statOnlineEl = document.getElementById('stat-online');
         const navOnlineEl = document.getElementById('nav-online');
-        const statVersionEl = document.getElementById('stat-peak'); 
+        const statVersionEl = document.getElementById('stat-peak');
         const statusDot = document.querySelector('.status-dot');
 
         if (data.online === true) {
@@ -752,7 +762,7 @@ async function updateServerStatus() {
 
             // 2. LẤY PHIÊN BẢN: data.version (Trong JSON là "Leaf 1.21.8")
             if (statVersionEl && data.version) {
-                const versionString = data.version; 
+                const versionString = data.version;
                 // Regex lọc lấy số (ví dụ: 1.21.8)
                 const cleanVersion = versionString.match(/\d+\.\d+(\.\d+)?/);
                 statVersionEl.innerText = cleanVersion ? cleanVersion[0] : versionString;
