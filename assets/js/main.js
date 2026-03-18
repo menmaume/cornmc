@@ -585,7 +585,7 @@ async function renderRanking() {
             { namecache: "linhcute2006", value: 25000 },
             { namecache: "lehiepmc", value: 20000 },
             { namecache: "sangvu", value: 15000 },
-            {  namecache: "linhcte2006", value: 1168000 }
+            {  namecache: "linhcute2006", value: 1168000 }
         ];
         // Sắp xếp tự động từ cao xuống thấp
         const donateBoard = donateData.sort((a, b) => b.value - a.value);
