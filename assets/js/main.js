@@ -544,7 +544,7 @@ async function renderRanking() {
 
     container.innerHTML = '<div class="text-center py-12"><div class="loader-ring w-12 h-12 mx-auto mb-4"></div><p class="text-cyan-400 font-bold neon-text animate-pulse">Đang tải dữ liệu từ máy chủ...</p></div>';
 
-    const exportID = "r51WtSD0Wc0Zmk2w"; // ID Bytebin của bạn
+    const exportID = "vrWvFmL9ef1scbZd"; // ID Bytebin của bạn
     const rawDataUrl = `https://bytebin.ajg0702.us/${exportID}`;
 
     try {
@@ -564,7 +564,7 @@ async function renderRanking() {
             { namecache: "PE_PopOcean46064", value: 900000 },
             { namecache: "Timmythanh007", value: 860000 },
             { namecache: "luan198348", value: 820000 },
-            { namecache: "Ghast", value: 500000 },
+            { namecache: "Ghast", value: 500000+2000000 },
             { namecache: "ShaMein", value: 450000 },
             { namecache: "NgiPam_06", value: 431000 },
             { namecache: "Trungvippro", value: 420000 },
@@ -585,7 +585,9 @@ async function renderRanking() {
             { namecache: "linhcute2006", value: 25000 },
             { namecache: "lehiepmc", value: 20000 },
             { namecache: "sangvu", value: 15000 },
-            {  namecache: "linhcute2006", value: 1168000 }
+            {  namecache: "linhcute2006", value: 1168000+1050000 },
+            { namecache: "DraWind000", value: 250000 },
+            { namecache: "huy_holow", value: 230000 }
         ];
         // Sắp xếp tự động từ cao xuống thấp
         const donateBoard = donateData.sort((a, b) => b.value - a.value);
@@ -602,8 +604,7 @@ async function renderRanking() {
         <div class="relative w-full max-w-2xl mx-auto">
         `;
 
-        // Hàm hỗ trợ vẽ 1 bảng
-        const renderBoard = (tabId, title, boardData, prefix, suffix, colorClass, borderGlow, isHidden) => {
+        const renderBoard = (tabId, title, boardData, prefix, suffix, colorClass, borderGlow, isHidden, limit = 10, useShortFormat = false) => {
             let boardHtml = `<div id="board-${tabId}" class="rank-board ${isHidden ? 'hidden' : ''} glass-intense p-4 sm:p-6 rounded-2xl border ${borderGlow} shadow-[0_0_30px_rgba(0,0,0,0.2)] relative overflow-hidden group transition-all duration-300">`;
             boardHtml += `<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>`;
             boardHtml += `<h3 class="text-2xl font-black title-font text-center mb-6 ${colorClass} drop-shadow-md relative z-10">${title}</h3>`;
@@ -612,9 +613,22 @@ async function renderRanking() {
             if (boardData.length === 0) {
                 boardHtml += `<div class="text-center py-8 text-gray-500 italic text-sm">Chưa có dữ liệu</div>`;
             } else {
-                const top10 = boardData.slice(0, 10);
-                top10.forEach((player, index) => {
-                    let val = parseFloat(player.value || 0).toLocaleString('vi-VN');
+                // Cắt danh sách theo limit truyền vào
+                const topList = boardData.slice(0, limit);
+                topList.forEach((player, index) => {
+                    let numVal = parseFloat(player.value || 0);
+                    let val = "";
+                    
+                    // Xử lý làm ngắn gọn số tiền
+                    if (useShortFormat) {
+                        if (numVal >= 1000000000) val = (numVal / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+                        else if (numVal >= 1000000) val = (numVal / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                        else if (numVal >= 1000) val = (numVal / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                        else val = numVal.toLocaleString('vi-VN');
+                    } else {
+                        val = numVal.toLocaleString('vi-VN');
+                    }
+
                     let playerName = player.namecache || "Ẩn danh";
 
                     let medal = `#${index + 1}`;
@@ -645,9 +659,52 @@ async function renderRanking() {
             return boardHtml;
         };
 
+        // // Hàm hỗ trợ vẽ 1 bảng
+        // const renderBoard = (tabId, title, boardData, prefix, suffix, colorClass, borderGlow, isHidden) => {
+        //     let boardHtml = `<div id="board-${tabId}" class="rank-board ${isHidden ? 'hidden' : ''} glass-intense p-4 sm:p-6 rounded-2xl border ${borderGlow} shadow-[0_0_30px_rgba(0,0,0,0.2)] relative overflow-hidden group transition-all duration-300">`;
+        //     boardHtml += `<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>`;
+        //     boardHtml += `<h3 class="text-2xl font-black title-font text-center mb-6 ${colorClass} drop-shadow-md relative z-10">${title}</h3>`;
+        //     boardHtml += `<div class="space-y-3 relative z-10">`;
+
+        //     if (boardData.length === 0) {
+        //         boardHtml += `<div class="text-center py-8 text-gray-500 italic text-sm">Chưa có dữ liệu</div>`;
+        //     } else {
+        //         const top10 = boardData.slice(0, 10);
+        //         top10.forEach((player, index) => {
+        //             let val = parseFloat(player.value || 0).toLocaleString('vi-VN');
+        //             let playerName = player.namecache || "Ẩn danh";
+
+        //             let medal = `#${index + 1}`;
+        //             let medalClass = "text-gray-400 text-base font-bold";
+        //             let rowBorder = "border-white/10";
+
+        //             if (index === 0) { medal = '🥇'; medalClass = "text-3xl drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"; rowBorder = "border-yellow-400/50 bg-gradient-to-r from-yellow-500/20 to-transparent"; }
+        //             else if (index === 1) { medal = '🥈'; medalClass = "text-2xl drop-shadow-[0_0_8px_rgba(148,163,184,0.8)]"; rowBorder = "border-gray-300/50 bg-gradient-to-r from-gray-400/20 to-transparent"; }
+        //             else if (index === 2) { medal = '🥉'; medalClass = "text-2xl drop-shadow-[0_0_8px_rgba(180,83,9,0.8)]"; rowBorder = "border-orange-400/50 bg-gradient-to-r from-orange-600/20 to-transparent"; }
+
+        //             boardHtml += `
+        //             <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-l-4 ${rowBorder} hover:bg-white/10 hover:scale-[1.02] transition-all cursor-default">
+        //                 <div class="flex items-center gap-3 sm:gap-4">
+        //                     <div class="w-10 text-center ${medalClass} title-font">${medal}</div>
+        //                     <div class="relative">
+        //                         <img src="https://mc-heads.net/avatar/${playerName}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg border border-white/20 bg-gray-900 object-cover shadow-md">
+        //                         ${index === 0 ? '<div class="absolute -top-3 -right-2 text-lg">👑</div>' : ''}
+        //                     </div>
+        //                     <span class="font-bold text-white text-base sm:text-xl tracking-wide">${playerName}</span>
+        //                 </div>
+        //                 <div class="text-right">
+        //                     <span class="${colorClass} font-black text-lg sm:text-2xl drop-shadow-sm">${prefix}${val}${suffix}</span>
+        //                 </div>
+        //             </div>`;
+        //         });
+        //     }
+        //     boardHtml += `</div></div>`;
+        //     return boardHtml;
+        // };
+
         // 4. VẼ 5 BẢNG VÀO HTML (Mặc định hiện TOP DONATE, ẩn 4 Top còn lại)
-        html += renderBoard("donate", "💖 BẢNG VÀNG DONATE", donateBoard, "", " VNĐ", "text-pink-400", "border-pink-500/20", false);
-        html += renderBoard("money", "💰 TOP ĐẠI GIA", moneyBoard, "$", "", "text-green-400", "border-green-500/20", true);
+        html += renderBoard("donate", "💖 BẢNG VÀNG DONATE", donateBoard, "", " VNĐ", "text-pink-400", "border-pink-500/20", false, 20, false);
+        html += renderBoard("money", "💰 TOP ĐẠI GIA", moneyBoard, "$", "", "text-green-400", "border-green-500/20", true, 10, true);
         html += renderBoard("online", "⏳ TOP CHĂM CHỈ", onlineBoard, "", " Giờ", "text-cyan-400", "border-cyan-500/20", true);
         html += renderBoard("point", "💎 TOP ĐẠI GIA XU", pointBoard, "", " Xu", "text-yellow-400", "border-yellow-500/20", true);
         html += renderBoard("kill", "⚔️ TOP SÁT THỦ", killBoard, "", " Kill", "text-red-400", "border-red-500/20", true);
@@ -734,7 +791,7 @@ window.switchRankTab = (tabName) => {
 // CẬP NHẬT TRẠNG THÁI SERVER (SỐ NGƯỜI CHƠI)
 // ==========================================
 async function updateServerStatus() {
-    const apiUrl = `https://api.mcsrvstat.us/2/103.161.119.28:25017`;
+    const apiUrl = `https://api.mcsrvstat.us/2/45.117.164.93:25626`;
 
     try {
         const response = await fetch(apiUrl);
