@@ -559,7 +559,7 @@ async function renderRanking() {
 
         // 2. DỮ LIỆU TOP DONATE (Nhập thủ công)
         const donateData = [
-            { namecache: "Glenn1", value: 2600000 },
+            { namecache: "Glenn1", value: 2700000 },
             { namecache: "PE_Dellcotenok", value: 2225000 },
             { namecache: "PE_PopOcean46064", value: 900000 },
             { namecache: "Timmythanh007", value: 860000 },
