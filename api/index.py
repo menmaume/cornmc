@@ -148,6 +148,55 @@ def convert_skin():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+@app.route('/api/ai-photo-to-skin', methods=['POST', 'OPTIONS'])
+def ai_photo_to_skin():
+    if request.method == 'OPTIONS': return '', 200
+    
+    try:
+        file_input = request.files.get('image')
+        if not file_input:
+            return jsonify({"error": "Vui lòng tải lên một tấm ảnh!"}), 400
+
+        # 1. Mở Mapping (phải có file mapping_4px.png trong cùng thư mục)
+        mapping = Image.open(os.path.join(BASE_DIR, 'mapping_4px.png')).convert("RGBA")
+        photo = Image.open(file_input).convert("RGBA")
+        
+        # 2. AI Pre-processing: Cắt vuông tâm để tránh méo hình
+        w, h = photo.size
+        min_dim = min(w, h)
+        left = (w - min_dim) / 2
+        top = (h - min_dim) / 2
+        photo_cropped = photo.crop((left, top, left + min_dim, top + min_dim))
+        
+        # 3. Downscale: Thu nhỏ về 16x16 để lấy dải màu đặc trưng
+        photo_small = photo_cropped.resize((16, 16), Image.Resampling.LANCZOS)
+        
+        # 4. Tạo phôi Skin 64x64 và nhuộm màu dựa trên Mapping
+        skin_final = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        map_data = list(mapping.getdata())
+        mw, _ = mapping.size
+        new_data = []
+        
+        for i, pixel_map in enumerate(map_data):
+            if pixel_map[3] > 0: # Vùng mapping có màu = vùng cần vẽ
+                x, y = i % mw, i // mw
+                # Ánh xạ màu từ ảnh 16x16 vào tọa độ mapping
+                color = photo_small.getpixel((x % 16, y % 16))
+                new_data.append(color)
+            else:
+                new_data.append((0, 0, 0, 0))
+        
+        skin_final.putdata(new_data)
+        
+        # 5. Trả file về trình duyệt
+        img_io = io.BytesIO()
+        skin_final.save(img_io, 'PNG')
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/png', as_attachment=True, download_name="CornNetwork_AI_Skin.png")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 @app.route('/api/merge', methods=['POST', 'OPTIONS'])
 def merge_skin():
     try:

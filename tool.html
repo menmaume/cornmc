@@ -1,8 +1,19 @@
 <div class="tools-wrapper">
     <div class="tool-selector">
+        <button id="tab-ai" class="tab-btn" onclick="openTool('ai')">✨ AI Photo to Skin</button>
         <button id="tab-merge" class="tab-btn active" onclick="openTool('merge')">✂️ Tool Ghép Skin Toàn Diện</button>
-        <button id="tab-convert" class="tab-btn" onclick="openTool('convert')">🎨 Tool Chuyển Skin -> 3D
-            Schematic</button>
+        <button id="tab-convert" class="tab-btn" onclick="openTool('convert')">🎨 Tool Chuyển Skin -> 3D Schematic</button>
+    </div>
+
+    <div id="tool-ai" class="tool-container" style="display: none;">
+        <h2>✨ AI Photo to Skin</h2>
+        <p class="text-sm">Tải ảnh đời thực/phong cảnh để AI tự động chuyển hóa thành skin theo cấu trúc 4px.</p>
+        <div class="upload-area">
+            <input type="file" id="aiInput" accept="image/*" />
+        </div>
+        <button id="aiBtn" class="action-btn" style="background-color: #cba6f7;" onclick="processAISkin()">Bắt Đầu
+            Chuyển Hóa ⚡</button>
+        <p id="aiStatus" class="status-message"></p>
     </div>
 
     <div id="tool-merge" class="tool-container">
@@ -28,6 +39,7 @@
             <input type="file" id="skinLegs">
         </div>
         <button id="btnMerge" class="action-btn" onclick="mergeSkin()">Ghép Lại Ngay 🚀</button>
+        <p id="mergeStatus" class="status-message"></p>
     </div>
 
     <div id="tool-convert" class="tool-container" style="display: none;">
@@ -160,11 +172,13 @@
 
 <script>
     function openTool(toolName) {
-        document.getElementById('tool-merge').style.display = 'none';
-        document.getElementById('tool-convert').style.display = 'none';
-        document.getElementById('tab-merge').classList.remove('active');
-        document.getElementById('tab-convert').classList.remove('active');
+        // Ẩn tất cả các khung chứa công cụ
+        document.querySelectorAll('.tool-container').forEach(el => el.style.display = 'none');
 
+        // Gỡ bỏ trạng thái "active" của tất cả các nút bấm trên thanh chọn
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        // Hiển thị đúng công cụ được chọn và kích hoạt nút tương ứng
         document.getElementById('tool-' + toolName).style.display = 'block';
         document.getElementById('tab-' + toolName).classList.add('active');
     }
@@ -174,7 +188,7 @@
         const headInput = document.getElementById('skinHead');
         const bodyInput = document.getElementById('skinBody'); // Đây là Skin Gốc
         const legsInput = document.getElementById('skinLegs');
-        const statusMsg = document.getElementById('statusMessage'); // Sửa lại đúng ID trong HTML của bạn
+        const statusMsg = document.getElementById('mergeStatus');
         const btn = document.getElementById('btnMerge');
 
         // CHỈ BẮT BUỘC có Skin Gốc
@@ -292,4 +306,47 @@
             convertBtn.textContent = 'Chuyển Đổi Ngay 🚀';
         }
     }
+
+    async function processAISkin() {
+        const fileInput = document.getElementById('aiInput');
+        const statusMsg = document.getElementById('aiStatus');
+        const btn = document.getElementById('aiBtn');
+
+        if (fileInput.files.length === 0) {
+            statusMsg.textContent = '⚠️ Hãy chọn một tấm ảnh trước!';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ AI Đang quét ảnh...';
+
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+
+        try {
+            const response = await fetch('/api/ai-photo-to-skin', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Lỗi xử lý AI');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CornNetwork_AI_Skin.png';
+            a.click();
+
+            statusMsg.textContent = '✅ Chuyển hóa thành công!';
+            statusMsg.style.color = '#a6e3a1';
+        } catch (error) {
+            statusMsg.textContent = '❌ Thất bại: ' + error.message;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Bắt Đầu Chuyển Hóa ⚡';
+        }
+    }
+
+
 </script>
