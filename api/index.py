@@ -213,8 +213,14 @@ def ai_photo_to_skin():
                 else: # Vùng THÂN/CHÂN: Hòa trộn màu gốc với Bảng màu thông minh
                     raw_c = photo.resize((16, 16)).getpixel((x % 16, y % 16))
                     # Pha 30% màu chủ đạo để skin có tone màu thống nhất
-                    blended = tuple([int(raw_c[j]*0.7 + main_theme_color[j]*0.3) for j in range(3)] + [255])
-                    new_data.append(blended)
+                    # Chắc chắn rằng kết quả là một tuple 4 phần tử (R, G, B, A)
+                blended = (
+                    int(raw_c[0]*0.7 + main_theme_color[0]*0.3),
+                    int(raw_c[1]*0.7 + main_theme_color[1]*0.3),
+                    int(raw_c[2]*0.7 + main_theme_color[2]*0.3),
+                    255  # Ép độ hiển thị là 100%, không cho phép bị đen/trong suốt
+                )
+                new_data.append(blended)
             else:
                 new_data.append((0, 0, 0, 0))
         
