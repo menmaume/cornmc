@@ -155,48 +155,95 @@ def ai_photo_to_skin():
     try:
         file_input = request.files.get('image')
         if not file_input:
-            return jsonify({"error": "Vui lòng tải lên một tấm ảnh!"}), 400
+            return jsonify({"error": "Vui lòng tải ảnh chân dung!"}), 400
 
-        # 1. Mở Mapping (phải có file mapping_4px.png trong cùng thư mục)
         mapping = Image.open(os.path.join(BASE_DIR, 'mapping_4px.png')).convert("RGBA")
         photo = Image.open(file_input).convert("RGBA")
         
-        # 2. AI Pre-processing: Cắt vuông tâm để tránh méo hình
-        w, h = photo.size
-        min_dim = min(w, h)
-        left = (w - min_dim) / 2
-        top = (h - min_dim) / 2
-        photo_cropped = photo.crop((left, top, left + min_dim, top + min_dim))
+        # 1. AI PORTRAIT SCAN: Chia ảnh thành 3 vùng nhận diện
+        pw, ph = photo.size
+        # Cắt lấy vùng trung tâm ảnh theo tỷ lệ 1:2 (dáng người)
+        crop_w = ph / 2
+        left = (pw - crop_w) / 2
+        photo_human = photo.crop((max(0, left), 0, min(pw, left + crop_w), ph))
         
-        # 3. Downscale: Thu nhỏ về 16x16 để lấy dải màu đặc trưng
-        photo_small = photo_cropped.resize((16, 16), Image.Resampling.LANCZOS)
+        # Resize về kích thước nhỏ để xử lý pixel
+        scan_res = photo_human.resize((16, 32), Image.Resampling.LANCZOS)
         
-        # 4. Tạo phôi Skin 64x64 và nhuộm màu dựa trên Mapping
+        # Chia vùng pixel
+        head_area = scan_res.crop((0, 0, 16, 10))    # 30% đầu
+        body_area = scan_res.crop((0, 10, 16, 22))   # 40% thân
+        legs_area = scan_res.crop((0, 22, 16, 32))   # 30% chân
+
+        # 2. MAPPING LOGIC: Ánh xạ pixel vào từng bộ phận skin
         skin_final = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         map_data = list(mapping.getdata())
         mw, _ = mapping.size
         new_data = []
-        
+
         for i, pixel_map in enumerate(map_data):
-            if pixel_map[3] > 0: # Vùng mapping có màu = vùng cần vẽ
+            if pixel_map[3] > 0:
                 x, y = i % mw, i // mw
-                # Ánh xạ màu từ ảnh 16x16 vào tọa độ mapping
-                color = photo_small.getpixel((x % 16, y % 16))
+                
+                # AI quét theo tọa độ Y của mapping để quyết định lấy màu từ vùng nào
+                if y < 16: # Vùng ĐẦU trong mapping (0-16)
+                    color = head_area.getpixel((x % 16, y % 10))
+                elif y < 32: # Vùng THÂN & TAY trong mapping (16-32)
+                    color = body_area.getpixel((x % 16, (y-16) % 12))
+                else: # Vùng CHÂN trong mapping (32-64)
+                    color = legs_area.getpixel((x % 16, (y-32) % 10))
+                
                 new_data.append(color)
             else:
                 new_data.append((0, 0, 0, 0))
-        
+
         skin_final.putdata(new_data)
         
-        # 5. Trả file về trình duyệt
+        # 3. Xuất file
         img_io = io.BytesIO()
         skin_final.save(img_io, 'PNG')
         img_io.seek(0)
-        return send_file(img_io, mimetype='image/png', as_attachment=True, download_name="CornNetwork_AI_Skin.png")
+        return send_file(img_io, mimetype='image/png', as_attachment=True, download_name="AI_Portrait_Skin.png")
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+     
+@app.route('/api/pixel-scanner', methods=['POST', 'OPTIONS'])
+def pixel_scanner():
+    if request.method == 'OPTIONS': return '', 200
+    
+    try:
+        file_input = request.files.get('image')
+        # Lấy tham số độ phân giải pixel từ người dùng (mặc định là 64)
+        pixel_size = int(request.form.get('size', 64)) 
         
+        if not file_input:
+            return jsonify({"error": "Vui lòng chọn ảnh để scan!"}), 400
+
+        # 1. Đọc và tiền xử lý ảnh
+        img = Image.open(file_input).convert("RGBA")
+        
+        # 2. Thuật toán Pixelate: Downscale và Upscale không làm nhòe (Nearest Neighbor)
+        # Bước này tạo ra các ô vuông pixel đặc trưng
+        img_small = img.resize((pixel_size, pixel_size), resample=Image.Resampling.BILINEAR)
+        
+        # 3. AI Color Quantization: Giảm bảng màu để tạo hiệu ứng tranh vẽ pixel
+        # Sử dụng chế độ "P" (Palette) để ép ảnh về tối đa 32 màu chủ đạo
+        img_pixel = img_small.convert("P", palette=Image.Palette.ADAPTIVE, colors=32).convert("RGBA")
+        
+        # 4. Phóng to lại để người dùng dễ nhìn (giữ nguyên độ sắc nét của ô vuông)
+        result_img = img_pixel.resize((512, 512), resample=Image.Resampling.NEAREST)
+
+        # 5. Xuất file trả về
+        img_io = io.BytesIO()
+        result_img.save(img_io, 'PNG')
+        img_io.seek(0)
+        
+        return send_file(img_io, mimetype='image/png', as_attachment=True, download_name="CornNetwork_PixelArt.png")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500     
+   
 @app.route('/api/merge', methods=['POST', 'OPTIONS'])
 def merge_skin():
     try:

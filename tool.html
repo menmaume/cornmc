@@ -1,8 +1,30 @@
 <div class="tools-wrapper">
     <div class="tool-selector">
+        <button id="tab-pixel" class="tab-btn" onclick="openTool('pixel')">👾 AI Pixel Scanner</button>
         <button id="tab-ai" class="tab-btn" onclick="openTool('ai')">✨ AI Photo to Skin</button>
         <button id="tab-merge" class="tab-btn active" onclick="openTool('merge')">✂️ Tool Ghép Skin Toàn Diện</button>
-        <button id="tab-convert" class="tab-btn" onclick="openTool('convert')">🎨 Tool Chuyển Skin -> 3D Schematic</button>
+        <button id="tab-convert" class="tab-btn" onclick="openTool('convert')">🎨 Tool Chuyển Skin -> 3D
+            Schematic</button>
+    </div>
+
+    <div id="tool-pixel" class="tool-container" style="display: none;">
+        <h2>👾 AI Pixel Scanner</h2>
+        <p class="text-sm">Biến ảnh chụp thành tranh Pixel Art 32 màu cổ điển.</p>
+        <div class="upload-area">
+            <input type="file" id="pixelInput" accept="image/*" />
+        </div>
+        <div style="margin-bottom: 15px; text-align: left;">
+            <label style="color: #89b4fa; font-size: 13px;">Độ phân giải (Pixel Size):</label>
+            <select id="pixelSize" class="action-btn"
+                style="background-color: #313244; color: #cdd6f4; padding: 8px; margin-top: 5px;">
+                <option value="32">32x32 (Cực thấp - Retro)</option>
+                <option value="64" selected>64x64 (Tiêu chuẩn)</option>
+                <option value="128">128x128 (Chi tiết cao)</option>
+            </select>
+        </div>
+        <button id="pixelBtn" class="action-btn" style="background-color: #f9e2af;" onclick="scanPixelArt()">Scan Pixel
+            Art 🚨</button>
+        <p id="pixelStatus" class="status-message"></p>
     </div>
 
     <div id="tool-ai" class="tool-container" style="display: none;">
@@ -348,5 +370,54 @@
         }
     }
 
+    async function scanPixelArt() {
+        const fileInput = document.getElementById('pixelInput');
+        const size = document.getElementById('pixelSize').value;
+        const statusMsg = document.getElementById('pixelStatus');
+        const btn = document.getElementById('pixelBtn');
+
+        if (fileInput.files.length === 0) {
+            statusMsg.textContent = '⚠️ Chọn ảnh cái đã ae ơi!';
+            statusMsg.style.color = '#f38ba8';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '🚨 Đang quét Pixel...';
+        statusMsg.textContent = 'AI đang xử lý bảng màu...';
+        statusMsg.style.color = '#f9e2af';
+
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        formData.append('size', size);
+
+        try {
+            // Lưu ý: Đổi port 5000 nếu bạn chạy Flask local
+            const response = await fetch('/api/pixel-scanner', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Lỗi server');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CornNetwork_PixelArt.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            statusMsg.textContent = '✅ Đã hoàn thành bản vẽ Pixel!';
+            statusMsg.style.color = '#a6e3a1';
+        } catch (error) {
+            statusMsg.textContent = '❌ Lỗi: ' + error.message;
+            statusMsg.style.color = '#f38ba8';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Scan Pixel Art 🚨';
+        }
+    }
 
 </script>
