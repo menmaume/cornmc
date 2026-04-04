@@ -1,10 +1,15 @@
 from flask import Flask, request, send_file, jsonify
 import mcschematic
 from PIL import Image
+from rembg import remove
+from sklearn.cluster import KMeans
+import cv2
+import numpy as np
 import json
 import tempfile
 import os
 import io
+
 
 app = Flask(__name__)
 
@@ -93,6 +98,38 @@ def combinedata(im, map_img):
             out.append(i)
     return out
 
+# nhan dien khuon mat AI
+def detect_face_and_crop(pil_image):
+    # Chuyển ảnh PIL sang định dạng OpenCV
+    open_cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGBA2BGR)
+    gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+    
+    # Load bộ nhận diện khuôn mặt có sẵn
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    
+    if len(faces) > 0:
+        # Lấy khuôn mặt đầu tiên tìm được
+        (x, y, w, h) = faces[0]
+        # Mở rộng vùng cắt một chút để lấy cả tóc
+        face_crop = pil_image.crop((x, y, x+w, y+h))
+        return face_crop.resize((8, 8), Image.Resampling.LANCZOS)
+    
+    # Nếu không tìm thấy mặt, trả về ảnh resize 8x8 tâm bình thường
+    return pil_image.resize((8, 8), Image.Resampling.LANCZOS)
+
+# nhan dien mau RGB tu dong 
+def get_smart_palette(pil_image, num_colors=8):
+    # Chuyển ảnh về mảng pixel
+    img_array = np.array(pil_image.convert("RGB")).reshape(-1, 3)
+    
+    # Dùng AI K-Means để tìm ra các nhóm màu chính
+    kmeans = KMeans(n_clusters=num_colors, n_init=10)
+    kmeans.fit(img_array)
+    
+    # Trả về danh sách các màu chủ đạo (RGB)
+    return kmeans.cluster_centers_.astype(int)
+
 @app.route('/api/convert', methods=['POST', 'OPTIONS'])
 def convert_skin():
     if request.method == 'OPTIONS': 
@@ -160,22 +197,18 @@ def ai_photo_to_skin():
         mapping = Image.open(os.path.join(BASE_DIR, 'mapping_4px.png')).convert("RGBA")
         photo = Image.open(file_input).convert("RGBA")
         
-        # 1. AI PORTRAIT SCAN: Chia ảnh thành 3 vùng nhận diện
-        pw, ph = photo.size
-        # Cắt lấy vùng trung tâm ảnh theo tỷ lệ 1:2 (dáng người)
-        crop_w = ph / 2
-        left = (pw - crop_w) / 2
-        photo_human = photo.crop((max(0, left), 0, min(pw, left + crop_w), ph))
+        try:
+        photo = Image.open(file_input).convert("RGBA")
         
-        # Resize về kích thước nhỏ để xử lý pixel
-        scan_res = photo_human.resize((16, 32), Image.Resampling.LANCZOS)
+        # BƯỚC 1: AI Nhận diện mặt cho vùng Đầu
+        face_pixel = detect_face_and_crop(photo)
         
-        # Chia vùng pixel
-        head_area = scan_res.crop((0, 0, 16, 10))    # 30% đầu
-        body_area = scan_res.crop((0, 10, 16, 22))   # 40% thân
-        legs_area = scan_res.crop((0, 22, 16, 32))   # 30% chân
-
-        # 2. MAPPING LOGIC: Ánh xạ pixel vào từng bộ phận skin
+        # BƯỚC 2: AI Phân tích màu chủ đạo cho trang phục (vùng Thân/Chân)
+        smart_colors = get_smart_palette(photo, num_colors=5)
+        main_theme_color = tuple(smart_colors[0]) # Lấy màu chiếm diện tích lớn nhất
+        
+        # BƯỚC 3: Mapping thông minh
+        mapping = Image.open(os.path.join(BASE_DIR, 'mapping_4px.png')).convert("RGBA")
         skin_final = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         map_data = list(mapping.getdata())
         mw, _ = mapping.size
@@ -185,19 +218,15 @@ def ai_photo_to_skin():
             if pixel_map[3] > 0:
                 x, y = i % mw, i // mw
                 
-                # AI quét theo tọa độ Y của mapping để quyết định lấy màu từ vùng nào
-                if y < 16: # Vùng ĐẦU trong mapping (0-16)
-                    color = head_area.getpixel((x % 16, y % 10))
-                elif y < 32: # Vùng THÂN & TAY trong mapping (16-32)
-                    color = body_area.getpixel((x % 16, (y-16) % 12))
-                else: # Vùng CHÂN trong mapping (32-64)
-                    color = legs_area.getpixel((x % 16, (y-32) % 10))
-                
-                new_data.append(color)
+                if y < 16: # Vùng ĐẦU: Lấy từ kết quả nhận diện mặt
+                    new_data.append(face_pixel.getpixel((x % 8, y % 8)))
+                else: # Vùng THÂN/CHÂN: Hòa trộn màu gốc với Bảng màu thông minh
+                    raw_c = photo.resize((16, 16)).getpixel((x % 16, y % 16))
+                    # Pha 30% màu chủ đạo để skin có tone màu thống nhất
+                    blended = tuple([int(raw_c[j]*0.7 + main_theme_color[j]*0.3) for j in range(3)] + [255])
+                    new_data.append(blended)
             else:
                 new_data.append((0, 0, 0, 0))
-
-        skin_final.putdata(new_data)
         
         # 3. Xuất file
         img_io = io.BytesIO()
