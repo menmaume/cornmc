@@ -1,6 +1,5 @@
-// data.js
-// 1. IMPORT FIREBASE SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
@@ -28,6 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // ==========================================
@@ -211,6 +211,15 @@ export async function deleteDocument(collectionName, docId) {
 
 export async function editDocument(collectionName, docId, data) {
     return await updateDoc(doc(db, collectionName, docId), data);
+}
+
+// Upload Hình Ảnh Lên Firebase Storage
+export async function uploadImageToFirebase(file, folderName = 'news_images') {
+    const fileName = `${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, `${folderName}/${fileName}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
 }
 
 // Comments

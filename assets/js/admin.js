@@ -2,7 +2,8 @@ import {
     subscribeToAuth, loginGoogle, logout,
     fetchNews, fetchGuides, fetchForumPosts, createPost, 
     fetchAllUsers, deleteUserAndData, updateUserProfile, editDocument, 
-    deleteDocument, fetchComments, addComment, deleteComment
+    deleteDocument, fetchComments, addComment, deleteComment,
+    uploadImageToFirebase // <--- THÊM CÁI NÀY VÀO
 } from './core.js';
 
 let currentTab = 'dashboard';
@@ -64,15 +65,38 @@ async function loadDashboard() {
     }
 }
 
-// hien thi ảnh xem trước
-document.getElementById('edit-image').addEventListener('input', (e) => {
-    const img = document.getElementById('edit-image-preview');
-    const url = e.target.value.trim();
-    if (url) {
-        img.src = url;
-        img.classList.remove('hidden');
-    } else {
-        img.classList.add('hidden');
+// HIỂN THỊ VÀ UPLOAD ẢNH KHI CHỌN FILE
+document.getElementById('edit-image-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const imgPreview = document.getElementById('edit-image-preview');
+    const urlInput = document.getElementById('edit-image');
+    const statusText = document.getElementById('upload-status');
+
+    // Hiện ảnh preview ngay lập tức trên máy
+    imgPreview.src = URL.createObjectURL(file);
+    imgPreview.classList.remove('hidden');
+    
+    // Hiện thông báo đang tải
+    statusText.classList.remove('hidden');
+    statusText.innerText = '⏳ Đang tải ảnh lên hệ thống...';
+    statusText.className = "text-xs mt-2 text-yellow-400 font-bold block animate-pulse";
+
+    try {
+        // Upload lên Firebase Storage
+        const imageUrl = await uploadImageToFirebase(file, 'news_images');
+        
+        // Gắn link Firebase trả về vào thẻ input ẩn để hàm Submit mang đi lưu
+        urlInput.value = imageUrl;
+        
+        statusText.innerText = '✅ Đã tải ảnh xong! Sẵn sàng lưu.';
+        statusText.className = "text-xs mt-2 text-green-400 font-bold block";
+    } catch (error) {
+        console.error(error);
+        statusText.innerText = '❌ Lỗi tải ảnh! Vui lòng thử lại.';
+        statusText.className = "text-xs mt-2 text-red-500 font-bold block";
+        urlInput.value = ''; // Xóa URL cũ nếu lỗi
     }
 });
 
@@ -177,20 +201,17 @@ async function loadPosts(collectionName) {
     `).join('');
 }
 
-// 6. FORM EDITOR (THÊM / SỬA)
+// 6. FORM EDITOR
 window.openEditor = (collectionName) => {
-    // Reset form để thêm mới
-    document.getElementById('editor-form').reset();
-    document.getElementById('edit-id').value = ''; 
-    document.getElementById('edit-collection').value = collectionName;
-    document.getElementById('editor-modal').classList.remove('hidden');
-    document.getElementById('edit-collection').value = collectionName;
+    // Reset toàn bộ form gọn gàng
     document.getElementById('editor-form').reset();
     document.getElementById('edit-id').value = ''; 
     document.getElementById('edit-collection').value = collectionName;
     document.getElementById('edit-image').value = '';
+    document.getElementById('edit-image-file').value = '';
     document.getElementById('edit-image-preview').classList.add('hidden');
     document.getElementById('edit-image-preview').src = '';
+    document.getElementById('upload-status').classList.add('hidden'); 
     
     let title = '';
     if (collectionName === 'news') title = 'THÊM TIN TỨC';
@@ -222,6 +243,8 @@ window.prepareEdit = async (collectionName, id) => {
         document.getElementById('edit-collection').value = collectionName;
         document.getElementById('edit-title').value = item.title;
         document.getElementById('edit-content').value = item.content;
+        document.getElementById('edit-image-file').value = ''; 
+        document.getElementById('upload-status').classList.add('hidden');
         document.getElementById('edit-cat').value = item.category || '';
 
         const imgInput = document.getElementById('edit-image');

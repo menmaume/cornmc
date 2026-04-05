@@ -151,12 +151,18 @@
                         placeholder="VD: SỰ KIỆN, BẢO TRÌ">
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Link Ảnh (URL)</label>
-                    <input type="text" id="edit-image"
-                        class="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-cyan-500 outline-none"
-                        placeholder="https://imgur.com/...">
+                    <label class="block text-xs font-bold text-cyan-400 mb-1">Chọn Ảnh Tải Lên</label>
+                    <div class="flex items-center gap-3">
+                        <input type="file" id="edit-image-file" accept="image/*"
+                            class="w-full text-sm text-gray-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer bg-black/50 border border-gray-700 rounded-lg outline-none transition">
+                        
+                        <input type="hidden" id="edit-image">
+                    </div>
+                    
+                    <p id="upload-status" class="text-xs mt-2 hidden"></p>
+                    
                     <img id="edit-image-preview" src=""
-                        class="hidden mt-2 h-32 w-full object-cover rounded border border-gray-700">
+                        class="hidden mt-3 h-40 w-full object-cover rounded-lg border border-cyan-500/50 shadow-lg">
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Nội dung (Hỗ trợ HTML cơ bản)</label>
